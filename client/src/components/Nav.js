@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { useAuth } from "../authContext";
 import { useNavigate } from "react-router-dom";
 
-const Nav = ({ token }) => {
+const Nav = ({ token, socket }) => {
   const { setToken, setcurrentUser } = useAuth();
   const navigate = useNavigate();
 
@@ -14,6 +14,13 @@ const Nav = ({ token }) => {
     localStorage.removeItem("userDetails");
     navigate("/");
   };
+
+  socket.on("online-users", (data) => {
+    console.log("data is data please: ", data )
+    //const onlineUsers = loopThroughMap(data);
+    //console.log("users are ", onlineUsers);
+    //setUsers(onlineUsers);
+  });
 
   return (
     <div>

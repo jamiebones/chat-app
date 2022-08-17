@@ -22,6 +22,7 @@ const createNewUser = async (req) => {
       name,
       username,
       password: hash,
+      online: false
     });
     const userId = await newUser.save();
     return {
@@ -64,6 +65,9 @@ const loginUser = async (req) => {
       },
       secret_key
     );
+
+    //update the online flag
+    await userAccount.updateOne({online: true});
 
     return {
       username: userAccount.username,

@@ -7,10 +7,13 @@ import bodyParser from "body-parser";
 import config from "./config";
 import controller from "./controller/index.js";
 
+let onLineUsers = new Map();
+
+
+
 const {
   chatController,
   userController: { createNewUser, loginUser },
-  onlineUserController: { saveOnlineUser, removeOnlineUser }
 } = controller;
 
 const { dbStart } = config;
@@ -37,16 +40,34 @@ const startWebServer = async () => {
     },
   });
 
+  //register socket middleware
+  socketIO.use((socket, next) => {
+    const { token, user } = socket.handshake.auth;
+    socket.token = token;
+    socket.user = user;
+    next();
+  });
+
   //Add this before the app.get() block
-  socketIO.on("connection", ( socket ) => {
+  socketIO.on("connection", (socket) => {
+    //var online = Object.keys(socketIO.engine.clients);
+    //console.log("online users", online)
+    if (socket.user) {
+      console.log("we have a user ", socket.user )
+      const username = socket.user.username;
+      const name = socket.user.name;
+      onLineUsers.set(username, name);
+      socket.emit("online-users",  [ ...onLineUsers.entries()]);
+      console.log("online users ", onLineUsers)
+    }
     console.log(`⚡: ${socket.id} user just connected!`);
     socket.on("disconnect", () => {
+      onLineUsers.delete(socket?.user?.username)
+      socket.emit("online-users",  [ ...onLineUsers.entries()]);
       console.log(`🔥: A user disconnected`);
     });
 
-    socket.on("user-login", async ( data ) => {
-       await saveOnlineUser(data);
-    })
+    
   });
 
   app.post("/create-user", async (req, res) => {

@@ -3,7 +3,7 @@ import { useAuth } from "../authContext";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 
-const LoginPage = () => {
+const LoginPage = ({socket}) => {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const { currentUser, setcurrentUser, token, setToken } = useAuth();
@@ -49,6 +49,8 @@ const LoginPage = () => {
           token: data.token,
         })
       );
+      const loginData = { username: data.username, name: data.name}
+      socket.auth = {token: data.token, user: loginData }
       navigate("/chat-area")
     } else {
       alert(`Error : ${data.message}`);
