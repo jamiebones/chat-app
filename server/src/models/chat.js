@@ -2,12 +2,18 @@ import mongoose from "mongoose";
 
 const Schema = mongoose.Schema;
 
-const ChatSchema = new Schema({
-  user: String,
-  messages: {
-    type: Array,
+const ChatSchema = new Schema(
+  {
+    message: String,
+    postedBy: String,
+    to: String,
+    messageRead: Boolean,
+  },
+
+  {
+    timestamps: true,
   }
-});
+);
 
 //object => {from, message, timestamp }
 

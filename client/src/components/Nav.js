@@ -11,16 +11,12 @@ const Nav = ({ token, socket }) => {
     e.preventDefault();
     setcurrentUser(null);
     setToken("");
+    socket.emit('user-logout');
     localStorage.removeItem("userDetails");
     navigate("/");
   };
 
-  socket.on("online-users", (data) => {
-    console.log("data is data please: ", data )
-    //const onlineUsers = loopThroughMap(data);
-    //console.log("users are ", onlineUsers);
-    //setUsers(onlineUsers);
-  });
+
 
   return (
     <div>

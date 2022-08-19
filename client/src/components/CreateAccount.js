@@ -7,7 +7,7 @@ const CreateUserAccount = () => {
   const [username, setUsername] = useState("");
   const [name, setName] = useState("");
   const [password, setPassword] = useState("");
-  const { socket } = useAuth();
+
 
   const navigate = useNavigate();
 

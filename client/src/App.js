@@ -16,21 +16,7 @@ function App() {
   const { currentUser, setcurrentUser, token, setToken } = useAuth();
 
   useEffect(() => {
-    socket.on("disconnect", () => {
-      console.log("we are disconnected");
-    });
-
-    socket.on("disconnecting", () => {
-      console.log("we are disconnecting......")
-    })
-
-    socket.on("connect", () => {
-      console.log("we are connected again:");
-    });
-  }, [socket]);
-
-  useEffect(() => {
-    if (!token || !currentUser ) {
+    if (!token || !currentUser) {
       //load the stuffs from the store if it exists
       const userDetails = window.localStorage.getItem("userDetails");
       if (userDetails) {
@@ -38,24 +24,45 @@ function App() {
         const { user, token } = parsedUserData;
         setcurrentUser(user);
         setToken(token);
-        //add it to socket here
-        socket.auth = {
-          token: token,
-          user: { username: user.username, name: user.name },
-        };
-        socket.user = { username: user.username, name: user.name };
       }
     }
   }, [currentUser]);
+
+  useEffect(() => {
+    socket.on("disconnect", () => {
+      console.log("we are disconnected", socket.id);
+    });
+
+    socket.on("disconnecting", () => {
+      console.log("we are disconnecting......", socket.id);
+    });
+
+    socket.on("connect", () => {
+      if (!token || !currentUser) {
+        //load the stuffs from the store if it exists
+        const userDetails = window.localStorage.getItem("userDetails");
+        if (userDetails) {
+          const user = JSON.parse(userDetails);
+          socket.auth = {
+            token: user.token,
+            user: { username: user?.username, name: user?.name },
+          };
+          socket.emit("refresh", user);
+        }
+      }
+
+      console.log("we are connected again:");
+    });
+  }, [socket]);
 
   return (
     <Router>
       <div>
         {/* Nav is available at the top of all the pages as a navigation bar */}
-        <Nav token={token} socket={socket}/>
+        <Nav token={token} socket={socket} />
         <Routes>
           <Route element={<ProtectedRoute />}>
-            <Route element={<Chat />} path="/chat-area" />
+            <Route element={<Chat socket={socket} />} path="/chat-area" />
           </Route>
           <Route path="/" element={<Home socket={socket} />} />
           <Route

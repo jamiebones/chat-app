@@ -1,15 +1,22 @@
 import express from "express";
 import "dotenv/config";
-import http from "http";
 import cors from "cors";
 import { Server } from "socket.io";
+import { createServer } from "http";
+
 import bodyParser from "body-parser";
 import config from "./config";
 import controller from "./controller/index.js";
 
-let onLineUsers = new Map();
+//middleware
 
+import isAuth from "./middleware/isAuth";
 
+import indexRouter from "./routes/index";
+import chatRouter from "./routes/chat";
+
+// socket configuration
+import WebSockets from "./utils/WebSockets.js";
 
 const {
   chatController,
@@ -18,71 +25,49 @@ const {
 
 const { dbStart } = config;
 
-const startWebServer = async () => {
-  const app = express();
+const PORT = 4000;
 
-  const PORT = 4000;
+const app = express();
+const httpServer = createServer(app);
+const io = new Server(httpServer, {
+  cors: {
+    origin: "http://localhost:3000",
+  },
+});
 
-  const server = http.Server(app);
+app.use(cors());
 
-  app.use(cors());
+// Configuring body parser middleware
+app.use(bodyParser.urlencoded({ extended: false }));
+app.use(bodyParser.json());
 
-  // Configuring body parser middleware
-  app.use(bodyParser.urlencoded({ extended: false }));
-  app.use(bodyParser.json());
+//start the database
+dbStart();
 
-  //start the database
-  await dbStart();
 
-  const socketIO = new Server(server, {
-    cors: {
-      origin: "http://localhost:3000",
-    },
+app.use("/", indexRouter);
+app.use("/chat", isAuth, chatRouter);
+
+//register socket middleware
+io.use((socket, next) => {
+  const { token, user } = socket.handshake.auth;
+  console.log("user server ", user)
+  socket.token = token;
+  socket.user = user;
+  next();
+});
+
+global.io = io;
+global.io.on("connection", WebSockets.connection);
+
+/** catch 404 **/
+app.use("*", (req, res) => {
+  return res.status(404).json({
+    success: false,
+    message: "API endpoint doesnt exist",
   });
+});
 
-  //register socket middleware
-  socketIO.use((socket, next) => {
-    const { token, user } = socket.handshake.auth;
-    socket.token = token;
-    socket.user = user;
-    next();
-  });
-
-  //Add this before the app.get() block
-  socketIO.on("connection", (socket) => {
-    //var online = Object.keys(socketIO.engine.clients);
-    //console.log("online users", online)
-    if (socket.user) {
-      console.log("we have a user ", socket.user )
-      const username = socket.user.username;
-      const name = socket.user.name;
-      onLineUsers.set(username, name);
-      socket.emit("online-users",  [ ...onLineUsers.entries()]);
-      console.log("online users ", onLineUsers)
-    }
-    console.log(`⚡: ${socket.id} user just connected!`);
-    socket.on("disconnect", () => {
-      onLineUsers.delete(socket?.user?.username)
-      socket.emit("online-users",  [ ...onLineUsers.entries()]);
-      console.log(`🔥: A user disconnected`);
-    });
-
-    
-  });
-
-  app.post("/create-user", async (req, res) => {
-    const data = await createNewUser(req);
-    res.send(data);
-  });
-
-  app.post("/login", async (req, res) => {
-    const data = await loginUser(req);
-    res.send(data);
-  });
-
-  server.listen(PORT, () => {
-    console.log(`Server listening on ${PORT}`);
-  });
-};
-
-startWebServer();
+httpServer.listen(PORT, () => {
+  console.log(`Server listening on ${PORT}`);
+});
